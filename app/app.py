@@ -4,7 +4,6 @@ from model import Model
 
 def play_video_file(video_file):
     model = Model()
-    model_queue = model.create_infer_queue()
 
     print(f'Opening {video_file}...')
     capture = cv2.VideoCapture(video_file)
@@ -18,14 +17,11 @@ def play_video_file(video_file):
         if not video_playing:
             break
 
-        model_input = model.preprocess(frame)
-        model_queue.start_async({model.input_layer: model_input})
-        model_queue.wait_all()
-        fire, fire_prob = model.get_result()
+        fire, prob = model.predict(frame)
 
         cv2.putText(
             img=frame,
-            text=f'{fire} ({fire_prob:.2f})',
+            text=f'{fire} ({prob:.2f})',
             org=(10, 60),
             fontFace=cv2.FONT_HERSHEY_PLAIN,
             fontScale=4,
