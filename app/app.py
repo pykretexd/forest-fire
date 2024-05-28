@@ -1,16 +1,17 @@
+import os
 import cv2
 from model import Model
 
 
-def play_video_file(video_file):
+def read_media_file(media_file):
     model = Model()
 
-    print(f'Opening {video_file}...')
-    capture = cv2.VideoCapture(video_file)
+    print(f'Opening {media_file}...')
+    capture = cv2.VideoCapture(media_file)
     if not capture.isOpened():
-        raise Exception(f'Could not open {video_file}.')
+        raise Exception(f'Could not open {media_file}.')
     else:
-        print(f'Opened {video_file}.')
+        print(f'Opened {media_file}.')
 
     while True:
         video_playing, frame = capture.read()
@@ -18,10 +19,11 @@ def play_video_file(video_file):
             break
 
         fire, prob = model.predict(frame)
+        print(fire, str(round(prob * 100, 2)) + '%')
 
         cv2.putText(
             img=frame,
-            text=f'{fire} ({prob:.2f})',
+            text=f'{fire} ({prob*100:.2f}%)',
             org=(10, 60),
             fontFace=cv2.FONT_HERSHEY_PLAIN,
             fontScale=4,
@@ -30,7 +32,7 @@ def play_video_file(video_file):
             lineType=cv2.LINE_AA
         )
 
-        cv2.imshow(video_file, frame)
+        cv2.imshow(media_file, frame)
         ESCAPE_KEY = 27
         if cv2.waitKey(1) == ESCAPE_KEY:
             break
@@ -38,5 +40,9 @@ def play_video_file(video_file):
     cv2.destroyAllWindows()
 
 
-play_video_file('videos/forest.mp4')
-play_video_file('videos/fire.mp4')
+MEDIA_DIR = 'media'
+while True:
+    for media_file in os.listdir(MEDIA_DIR):
+        media_path = f'{MEDIA_DIR}/{media_file}'
+        read_media_file(media_path)
+        os.rename(media_path, media_file)
