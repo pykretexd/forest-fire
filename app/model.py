@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from openvino import AsyncInferQueue, Core
+from openvino.runtime import AsyncInferQueue, Core
 import openvino.runtime.properties as props
 
 
@@ -22,11 +22,19 @@ class Model:
         self.input_layer = self.compiled_model.input(0)
         self.height = int(self.input_layer.partial_shape[1].to_string())
         self.width = int(self.input_layer.partial_shape[2].to_string())
+        self.infer_queue = self.create_infer_queue()
 
     def create_infer_queue(self):
         infer_queue = AsyncInferQueue(self.compiled_model, 0)
         infer_queue.set_callback(self._callback)
         return infer_queue
+
+    def predict(self, frame):
+        model_input = self.preprocess(frame)
+        self.infer_queue.start_async({self.input_layer: model_input})
+        self.infer_queue.wait_all()
+        fire, prob = self.get_result()
+        return fire, prob
 
     def set_result(self, result):
         self.__result = result
@@ -45,10 +53,9 @@ class Model:
 
     def postprocess(self, res):
         ANSWERS = ['Fire', 'No fire']
-        fire = ANSWERS[np.argmax(res)]
-
-        fire_prob, no_fire_prob = res
-        prob = max(fire_prob, no_fire_prob) - min(fire_prob, no_fire_prob)
+        index = np.argmax(res)
+        fire = ANSWERS[index]
+        prob = res[index]
         return fire, prob
 
     def _callback(self, infer_request, user_data):
